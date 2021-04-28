@@ -1,0 +1,140 @@
+Predict    0.0        1.0        
+Actual
+0.0        5718       557        
+
+1.0        388        3364       
+
+
+
+
+
+Overall Statistics : 
+
+95% CI                                                            (0.90004,0.91147)
+ACC Macro                                                         0.90575
+ARI                                                               0.65749
+AUNP                                                              0.90391
+AUNU                                                              0.90391
+Bangdiwala B                                                      0.83
+Bennett S                                                         0.81151
+CBA                                                               0.88459
+CSI                                                               0.80111
+Chi-Squared                                                       6434.6799
+Chi-Squared DF                                                    1
+Conditional Entropy                                               0.45006
+Cramer V                                                          0.80108
+Cross Entropy                                                     0.9547
+F1 Macro                                                          0.90026
+F1 Micro                                                          0.90575
+FNR Macro                                                         0.09609
+FNR Micro                                                         0.09425
+FPR Macro                                                         0.09609
+FPR Micro                                                         0.09425
+Gwet AC1                                                          0.82135
+Hamming Loss                                                      0.09425
+Joint Entropy                                                     1.4039
+KL Divergence                                                     0.00087
+Kappa                                                             0.80057
+Kappa 95% CI                                                      (0.78847,0.81268)
+Kappa No Prevalence                                               0.81151
+Kappa Standard Error                                              0.00617
+Kappa Unbiased                                                    0.80051
+Krippendorff Alpha                                                0.80052
+Lambda A                                                          0.74813
+Lambda B                                                          0.75899
+Mutual Information                                                0.51541
+NIR                                                               0.62581
+Overall ACC                                                       0.90575
+Overall CEN                                                       0.40934
+Overall J                                                         (1.63886,0.81943)
+Overall MCC                                                       0.80108
+Overall MCEN                                                      0.32799
+Overall RACC                                                      0.52742
+Overall RACCU                                                     0.52756
+P-Value                                                           None
+PPV Macro                                                         0.8972
+PPV Micro                                                         0.90575
+Pearson C                                                         0.62521
+Phi-Squared                                                       0.64174
+RCI                                                               0.54035
+RR                                                                5013.5
+Reference Entropy                                                 0.95383
+Response Entropy                                                  0.96547
+SOA1(Landis & Koch)                                               Almost Perfect
+SOA2(Fleiss)                                                      Excellent
+SOA3(Altman)                                                      Very Good
+SOA4(Cicchetti)                                                   Excellent
+SOA5(Cramer)                                                      Very Strong
+SOA6(Matthews)                                                    Strong
+Scott PI                                                          0.80051
+Standard Error                                                    0.00292
+TNR Macro                                                         0.90391
+TNR Micro                                                         0.90575
+TPR Macro                                                         0.90391
+TPR Micro                                                         0.90575
+Zero-one Loss                                                     945
+
+Class Statistics :
+
+Classes                                                           0.0           1.0           
+ACC(Accuracy)                                                     0.90575       0.90575       
+AGF(Adjusted F-score)                                             0.89043       0.90969       
+AGM(Adjusted geometric mean)                                      0.9019        0.90671       
+AM(Difference between automatic and manual classification)        -169          169           
+AUC(Area under the ROC curve)                                     0.90391       0.90391       
+AUCI(AUC value interpretation)                                    Excellent     Excellent     
+AUPR(Area under the PR curve)                                     0.92385       0.87727       
+BCD(Bray-Curtis dissimilarity)                                    0.00843       0.00843       
+BM(Informedness or bookmaker informedness)                        0.80782       0.80782       
+CEN(Confusion entropy)                                            0.35786       0.49242       
+DOR(Diagnostic odds ratio)                                        89.00476      89.00476      
+DP(Discriminant power)                                            1.07477       1.07477       
+DPI(Discriminant power interpretation)                            Limited       Limited       
+ERR(Error rate)                                                   0.09425       0.09425       
+F0.5(F0.5 score)                                                  0.9313        0.8654        
+F1(F1 score - harmonic mean of precision and sensitivity)         0.92367       0.87684       
+F2(F2 score)                                                      0.91617       0.88858       
+FDR(False discovery rate)                                         0.06354       0.14206       
+FN(False negative/miss/type 2 error)                              557           388           
+FNR(Miss rate or false negative rate)                             0.08876       0.10341       
+FOR(False omission rate)                                          0.14206       0.06354       
+FP(False positive/type 1 error/false alarm)                       388           557           
+FPR(Fall-out or false positive rate)                              0.10341       0.08876       
+G(G-measure geometric mean of precision and sensitivity)          0.92376       0.87705       
+GI(Gini index)                                                    0.80782       0.80782       
+GM(G-mean geometric mean of specificity and sensitivity)          0.90388       0.90388       
+IBA(Index of balanced accuracy)                                   0.82897       0.80504       
+ICSI(Individual classification success index)                     0.84769       0.75453       
+IS(Information score)                                             0.58149       1.19711       
+J(Jaccard index)                                                  0.85817       0.78069       
+LS(Lift score)                                                    1.49639       2.29281       
+MCC(Matthews correlation coefficient)                             0.80108       0.80108       
+MCCI(Matthews correlation coefficient interpretation)             Strong        Strong        
+MCEN(Modified confusion entropy)                                  0.53818       0.69428       
+MK(Markedness)                                                    0.7944        0.7944        
+N(Condition negative)                                             3752          6275          
+NLR(Negative likelihood ratio)                                    0.099         0.11349       
+NLRI(Negative likelihood ratio interpretation)                    Good          Fair          
+NPV(Negative predictive value)                                    0.85794       0.93646       
+OC(Overlap coefficient)                                           0.93646       0.89659       
+OOC(Otsuka-Ochiai coefficient)                                    0.92376       0.87705       
+OP(Optimized precision)                                           0.89765       0.89765       
+P(Condition positive or support)                                  6275          3752          
+PLR(Positive likelihood ratio)                                    8.81174       10.10071      
+PLRI(Positive likelihood ratio interpretation)                    Fair          Good          
+POP(Population)                                                   10027         10027         
+PPV(Precision or positive predictive value)                       0.93646       0.85794       
+PRE(Prevalence)                                                   0.62581       0.37419       
+Q(Yule Q - coefficient of colligation)                            0.97778       0.97778       
+QI(Yule Q interpretation)                                         Strong        Strong        
+RACC(Random accuracy)                                             0.38109       0.14632       
+RACCU(Random accuracy unbiased)                                   0.38116       0.1464        
+TN(True negative/correct rejection)                               3364          5718          
+TNR(Specificity or true negative rate)                            0.89659       0.91124       
+TON(Test outcome negative)                                        3921          6106          
+TOP(Test outcome positive)                                        6106          3921          
+TP(True positive/hit)                                             5718          3364          
+TPR(Sensitivity, recall, hit rate, or true positive rate)         0.91124       0.89659       
+Y(Youden index)                                                   0.80782       0.80782       
+dInd(Distance index)                                              0.13628       0.13628       
+sInd(Similarity index)                                            0.90363       0.90363       

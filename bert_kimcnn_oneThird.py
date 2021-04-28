@@ -249,7 +249,7 @@ kimcnn,avgTrainLoss,avgValidLoss,avgTrainAcc,avgValidAcc=train_model(kimcnn,12)
 
 loss_train = avgTrainLoss
 loss_val = avgValidLoss
-epochs = range(1,11)
+epochs = range(1,len(avgTrainLoss)+1)
 plt.plot(epochs, loss_train, 'g', label='Training loss')
 plt.plot(epochs, loss_val, 'b', label='Validation loss')
 plt.title('Training and Validation loss(KimCNN_BCELoss)')
@@ -262,7 +262,7 @@ plt.close()
 
 loss_train = avgTrainAcc
 loss_val = avgValidAcc
-epochs = range(1,11)
+epochs = range(1,len(avgTrainAcc)+1)
 plt.plot(epochs, loss_train, 'g', label='Training Acc')
 plt.plot(epochs, loss_val, 'b', label='Validation Acc')
 plt.title('Training and Validation loss(KimCNN_BCELoss)')
