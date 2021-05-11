@@ -1,4 +1,3 @@
-#Importing all the necessary libraries
 from pycm import *
 from transformers import BertTokenizer, BertModel
 import nltk
@@ -25,7 +24,7 @@ import torchvision.transforms as visionTransforms
 import PIL.Image as Image
 from torchvision.transforms import ToTensor,ToPILImage
 
-df=pd.read_csv("train.csv",index_col=0)
+df=pd.read_csv("/root/QuoraQP/train.csv",index_col=0)
 
 #10K
 dfTrain,dfVal,dfTest=np.split(df.sample(frac=1, random_state=42), [int(.9505 * len(df)), int(.9752 * len(df))])
@@ -60,7 +59,7 @@ class QuoraDataset(Dataset):
     self.q2=str(self.data.iloc[idx,3])
     self.label=self.data.iloc[idx,4]
 
-    self.encodedStr=self.bertTokenizer.encode_plus(self.q1,self.q2,
+    self.encodedq1=self.bertTokenizer.encode_plus(text=self.q1,
 						padding='max_length',
 						truncation="longest_first",
 						max_length=self.maxLength,
@@ -68,19 +67,27 @@ class QuoraDataset(Dataset):
 						return_attention_mask=True,
 						return_token_type_ids=True).to(device)
 
-    return self.encodedStr,self.label
+    self.encodedq2=self.bertTokenizer.encode_plus(text=self.q2,
+						padding='max_length',
+						truncation="longest_first",
+						max_length=self.maxLength,
+						return_tensors='pt',
+						return_attention_mask=True,
+						return_token_type_ids=True).to(device)
+
+    return self.encodedq1,self.encodedq2,self.label
 
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-quoraTrainDataset=QuoraDataset(dataframe=dfTrain,bertTokenizer=tokenizer,maxLength=64,device=device)
-quoraTestDataset=QuoraDataset(dataframe=dfTest,bertTokenizer=tokenizer,maxLength=64,device=device)
-quoraValDataset=QuoraDataset(dataframe=dfVal,bertTokenizer=tokenizer,maxLength=64,device=device)
+quoraTrainDataset=QuoraDataset(dataframe=dfTrain,bertTokenizer=tokenizer,maxLength=32,device=device)
+quoraTestDataset=QuoraDataset(dataframe=dfTest,bertTokenizer=tokenizer,maxLength=32,device=device)
+quoraValDataset=QuoraDataset(dataframe=dfVal,bertTokenizer=tokenizer,maxLength=32,device=device)
 
 trainLoader=torch.utils.data.DataLoader(quoraTrainDataset,batch_size=8,sampler=trainSampler)
 testLoader=torch.utils.data.DataLoader(quoraTestDataset,batch_size=8,shuffle=True)
 valLoader=torch.utils.data.DataLoader(quoraValDataset,batch_size=8,shuffle=True)
 
 class KimCNN(nn.Module):
-  def __init__(self,preTrainedBert,inChannels=1,embeddingDimension=768,numClasses=2):
+  def __init__(self,preTrainedBert,inChannels=1,embeddingDimension=768,numClasses=27):
     super(KimCNN,self).__init__()
 
     self.inChannels=inChannels
@@ -94,10 +101,12 @@ class KimCNN(nn.Module):
     self.kimConv2=nn.Conv2d(in_channels=self.inChannels,out_channels=100,kernel_size=(4,self.embDim))
     self.kimConv3=nn.Conv2d(in_channels=self.inChannels,out_channels=100,kernel_size=(5,self.embDim))
     self.dropoutLayer=nn.Dropout(p=0.5)
-    self.fc=nn.Linear(400,1)
 
-  def forward(self,input):
+    self.fc1=nn.Linear(400,400)
+    self.fc2=nn.Linear(400,1)
 
+
+  def convs(self,input):
     bertOutput=self.bert(input_ids=input['input_ids'].squeeze(dim=1),attention_mask=input['attention_mask'].squeeze(dim=1),token_type_ids=input['token_type_ids'].squeeze(dim=1)).last_hidden_state
     
     kimInput=bertOutput.unsqueeze(1)
@@ -114,26 +123,40 @@ class KimCNN(nn.Module):
 
     kimOutput=torch.cat((conv0_Output.squeeze(dim=2),conv1_Output.squeeze(dim=2),conv2_Output.squeeze(dim=2),conv3_Output.squeeze(dim=2)),dim=1)
 
-    output=self.fc(self.dropoutLayer(kimOutput))
+    return kimOutput
 
-    output=output.reshape((output.size(0)))
 
-    return output
+  def forward(self,input1,input2):
+    kimOutput1=self.convs(input1)
+    kimOutput2=self.convs(input2)
+
+    concatenatedOutput=torch.sqrt((torch.square(kimOutput1-kimOutput2)))
+
+    classificationOutput=self.fc1(concatenatedOutput)
+    classificationOutput=nn.ReLU()(classificationOutput)
+    classificationOutput=self.dropoutLayer(classificationOutput)
+
+    classificationOutput=self.fc2(classificationOutput)
+    classificationOutput=classificationOutput.reshape((classificationOutput.size(0)))
+
+    return classificationOutput
+
 
   def freezeBert(self,model):
     count=0
     for name,params in model.named_parameters():
       count=count+1
-      if count<134:
+      if count<166:
         params.requires_grad=False
-
     return model
+
 
 model = BertModel.from_pretrained('bert-base-uncased')
 kimcnn=KimCNN(preTrainedBert=model)
 kimcnn.to(device)
 bceLoss = nn.BCEWithLogitsLoss()
 optimizer = optim.Adam(kimcnn.parameters(), lr=0.00001)
+
 
 def Average(lst): 
     return sum(lst) / len(lst) 
@@ -159,7 +182,7 @@ def train_model(model,epochs):
 
     model.train()
     print("Training.....")
-    for batch_idx,(input,targets) in enumerate(trainLoader):
+    for batch_idx,(q1,q2,targets) in enumerate(trainLoader):
 
       trainBatchCount=trainBatchCount+1
 
@@ -167,7 +190,7 @@ def train_model(model,epochs):
       
       optimizer.zero_grad()
 
-      scores=model(input)
+      scores=model(q1,q2)
 
       targets=targets.type_as(scores)
        
@@ -198,11 +221,11 @@ def train_model(model,epochs):
 
     model.eval()
     print("Validating.....")
-    for batch_idx,(input,targets) in enumerate(valLoader):
+    for batch_idx,(q1,q2,targets) in enumerate(valLoader):
 
       testBatchCount=testBatchCount+1
 
-      scores=model(input)
+      scores=model(q1,q2)
       targets=targets.to(device)
       targets=targets.type_as(scores)
 
@@ -244,32 +267,32 @@ def train_model(model,epochs):
 
   return model,avgTrainLoss,avgValidLoss,avgTrainAcc,avgValidAcc
 
+kimcnn,avgTrainLoss,avgValidLoss,avgTrainAcc,avgValidAcc=train_model(kimcnn,10)
 
-kimcnn,avgTrainLoss,avgValidLoss,avgTrainAcc,avgValidAcc=train_model(kimcnn,12)
 
 loss_train = avgTrainLoss
 loss_val = avgValidLoss
-epochs = range(1,len(avgTrainLoss)+1)
+epochs = range(1,11)
 plt.plot(epochs, loss_train, 'g', label='Training loss')
 plt.plot(epochs, loss_val, 'b', label='Validation loss')
 plt.title('Training and Validation loss(KimCNN_BCELoss)')
 plt.xlabel('Epochs')
 plt.ylabel('Loss')
 plt.legend()
-plt.savefig('Loss.png', bbox_inches='tight')
+plt.savefig('BCE_Loss.png', bbox_inches='tight')
 plt.close()
 #plt.show()
 
 loss_train = avgTrainAcc
 loss_val = avgValidAcc
-epochs = range(1,len(avgTrainAcc)+1)
+epochs = range(1,11)
 plt.plot(epochs, loss_train, 'g', label='Training Acc')
 plt.plot(epochs, loss_val, 'b', label='Validation Acc')
 plt.title('Training and Validation loss(KimCNN_BCELoss)')
 plt.xlabel('Epochs')
 plt.ylabel('Accuracy')
 plt.legend()
-plt.savefig('Acc.png', bbox_inches='tight')
+plt.savefig('BCE_Acc.png', bbox_inches='tight')
 plt.close()
 
 def checkClassificationMetrics(loader,model):
@@ -282,11 +305,11 @@ def checkClassificationMetrics(loader,model):
   model.eval()
 
   with torch.no_grad():
-    for input,targets in loader:
+    for q1,q2,targets in loader:
 
       targets=targets.to(device=device)
 
-      scores=model(input)
+      scores=model(q1,q2)
       targets=targets.type_as(scores)
       predictions=torch.round(nn.Sigmoid()(scores))
 
@@ -306,7 +329,6 @@ def checkClassificationMetrics(loader,model):
 
 cm=checkClassificationMetrics(testLoader,kimcnn)
 
-f=open("Results.txt","a")
+f=open("BCE_Results.txt","a")
 f.write(str(cm))
 f.close()
-

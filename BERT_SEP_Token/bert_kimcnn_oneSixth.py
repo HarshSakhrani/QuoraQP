@@ -256,7 +256,7 @@ plt.title('Training and Validation loss(KimCNN_BCELoss)')
 plt.xlabel('Epochs')
 plt.ylabel('Loss')
 plt.legend()
-plt.savefig('Loss.png', bbox_inches='tight')
+plt.savefig('OneSixthLoss.png', bbox_inches='tight')
 plt.close()
 #plt.show()
 
@@ -269,7 +269,7 @@ plt.title('Training and Validation loss(KimCNN_BCELoss)')
 plt.xlabel('Epochs')
 plt.ylabel('Accuracy')
 plt.legend()
-plt.savefig('Acc.png', bbox_inches='tight')
+plt.savefig('OneSixthAcc.png', bbox_inches='tight')
 plt.close()
 
 def checkClassificationMetrics(loader,model):
@@ -306,7 +306,7 @@ def checkClassificationMetrics(loader,model):
 
 cm=checkClassificationMetrics(testLoader,kimcnn)
 
-f=open("Results.txt","a")
+f=open("OneSixthResults.txt","a")
 f.write(str(cm))
 f.close()
 
