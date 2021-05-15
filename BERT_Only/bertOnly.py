@@ -1,4 +1,3 @@
-#Importing all the necessary libraries
 from pycm import *
 from transformers import BertTokenizer, BertModel
 import nltk
@@ -25,7 +24,13 @@ import torchvision.transforms as visionTransforms
 import PIL.Image as Image
 from torchvision.transforms import ToTensor,ToPILImage
 
-df=pd.read_csv("train.csv",index_col=0)
+df=pd.read_csv("/root/QuoraQP/train.csv",index_col=0)
+
+df=df[df['question1'].notna()]
+df=df.reset_index(drop=True)
+
+df=df[df['question2'].notna()]
+df=df.reset_index(drop=True)
 
 #10K
 dfTrain,dfVal,dfTest=np.split(df.sample(frac=1, random_state=42), [int(.9505 * len(df)), int(.9752 * len(df))])
@@ -44,7 +49,6 @@ sampleWeights=[weightClass[i] for i in dfTrain['is_duplicate']]
 trainSampler=WeightedRandomSampler(sampleWeights,len(dfTrain))
 
 from torch.utils.data import Dataset, DataLoader
-
 class QuoraDataset(Dataset):
 
   def __init__(self,dataframe,bertTokenizer,maxLength,device):
@@ -79,61 +83,46 @@ trainLoader=torch.utils.data.DataLoader(quoraTrainDataset,batch_size=8,sampler=t
 testLoader=torch.utils.data.DataLoader(quoraTestDataset,batch_size=8,shuffle=True)
 valLoader=torch.utils.data.DataLoader(quoraValDataset,batch_size=8,shuffle=True)
 
-class KimCNN(nn.Module):
-  def __init__(self,preTrainedBert,inChannels=1,embeddingDimension=768,numClasses=2):
-    super(KimCNN,self).__init__()
+class BERTOnly(nn.Module):
+  def __init__(self,preTrainedBert,embeddingDimension=768,numClasses=1):
+    super(BERTOnly,self).__init__()
 
-    self.inChannels=inChannels
     self.embDim=embeddingDimension
     self.numClasses=numClasses
 
-    self.bert=self.freezeBert(preTrainedBert)
-    
-    self.kimConv0=nn.Conv2d(in_channels=self.inChannels,out_channels=100,kernel_size=(2,self.embDim))
-    self.kimConv1=nn.Conv2d(in_channels=self.inChannels,out_channels=100,kernel_size=(3,self.embDim))
-    self.kimConv2=nn.Conv2d(in_channels=self.inChannels,out_channels=100,kernel_size=(4,self.embDim))
-    self.kimConv3=nn.Conv2d(in_channels=self.inChannels,out_channels=100,kernel_size=(5,self.embDim))
     self.dropoutLayer=nn.Dropout(p=0.5)
-    self.fc=nn.Linear(400,1)
+    self.bert=self.freezeBert(preTrainedBert)
+    self.fc1=nn.Linear(self.embDim,1)
+
+  def mean_pooling(self,model_output, attention_mask):
+    token_embeddings = model_output #First element of model_output contains all token embeddings
+    attention_mask=attention_mask.squeeze(dim=1)
+    input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+    sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
+    sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+    return sum_embeddings / sum_mask
 
   def forward(self,input):
-
     bertOutput=self.bert(input_ids=input['input_ids'].squeeze(dim=1),attention_mask=input['attention_mask'].squeeze(dim=1),token_type_ids=input['token_type_ids'].squeeze(dim=1)).last_hidden_state
-    
-    kimInput=bertOutput.unsqueeze(1)
-    
-    conv0_Output=F.relu(self.kimConv0(kimInput)).squeeze(3)
-    conv1_Output=F.relu(self.kimConv1(kimInput)).squeeze(3)
-    conv2_Output=F.relu(self.kimConv2(kimInput)).squeeze(3)
-    conv3_Output=F.relu(self.kimConv3(kimInput)).squeeze(3)
-    
-    conv0_Output=F.max_pool1d(conv0_Output,conv0_Output.size(2))
-    conv1_Output=F.max_pool1d(conv1_Output,conv1_Output.size(2))
-    conv2_Output=F.max_pool1d(conv2_Output,conv2_Output.size(2))
-    conv3_Output=F.max_pool1d(conv3_Output,conv3_Output.size(2))
+    output=self.mean_pooling(bertOutput,input['attention_mask'])
+    classificationOutput=self.fc1(self.dropoutLayer(output))
+    classificationOutput=classificationOutput.reshape((classificationOutput.size(0)))
 
-    kimOutput=torch.cat((conv0_Output.squeeze(dim=2),conv1_Output.squeeze(dim=2),conv2_Output.squeeze(dim=2),conv3_Output.squeeze(dim=2)),dim=1)
-
-    output=self.fc(self.dropoutLayer(kimOutput))
-
-    output=output.reshape((output.size(0)))
-
-    return output
+    return classificationOutput
 
   def freezeBert(self,model):
     count=0
     for name,params in model.named_parameters():
       count=count+1
-      if count<166:
+      if count<133:
         params.requires_grad=False
-
     return model
 
 model = BertModel.from_pretrained('bert-base-uncased')
-kimcnn=KimCNN(preTrainedBert=model)
-kimcnn.to(device)
+bertOnly=BERTOnly(preTrainedBert=model)
+bertOnly.to(device)
 bceLoss = nn.BCEWithLogitsLoss()
-optimizer = optim.Adam(kimcnn.parameters(), lr=0.00001)
+optimizer = optim.Adam(bertOnly.parameters(), lr=0.00001)
 
 def Average(lst): 
     return sum(lst) / len(lst) 
@@ -244,32 +233,30 @@ def train_model(model,epochs):
 
   return model,avgTrainLoss,avgValidLoss,avgTrainAcc,avgValidAcc
 
-
-kimcnn,avgTrainLoss,avgValidLoss,avgTrainAcc,avgValidAcc=train_model(kimcnn,12)
+bertOnly,avgTrainLoss,avgValidLoss,avgTrainAcc,avgValidAcc=train_model(bertOnly,12)
 
 loss_train = avgTrainLoss
 loss_val = avgValidLoss
 epochs = range(1,len(avgTrainLoss)+1)
 plt.plot(epochs, loss_train, 'g', label='Training loss')
 plt.plot(epochs, loss_val, 'b', label='Validation loss')
-plt.title('Training and Validation loss(KimCNN_BCELoss)')
+plt.title('Training and Validation loss(BERTOnly_BCELoss)')
 plt.xlabel('Epochs')
 plt.ylabel('Loss')
 plt.legend()
-plt.savefig('OneSixthLoss.png', bbox_inches='tight')
+plt.savefig('BERT_Only_Loss.png', bbox_inches='tight')
 plt.close()
-#plt.show()
 
 loss_train = avgTrainAcc
 loss_val = avgValidAcc
-epochs = range(1,len(avgTrainLoss)+1)
+epochs = range(1,len(avgTrainAcc)+1)
 plt.plot(epochs, loss_train, 'g', label='Training Acc')
 plt.plot(epochs, loss_val, 'b', label='Validation Acc')
-plt.title('Training and Validation loss(KimCNN_BCELoss)')
+plt.title('Training and Validation loss(BERTOnly_BCELoss)')
 plt.xlabel('Epochs')
 plt.ylabel('Accuracy')
 plt.legend()
-plt.savefig('OneSixthAcc.png', bbox_inches='tight')
+plt.savefig('BERTOnly_Acc.png', bbox_inches='tight')
 plt.close()
 
 def checkClassificationMetrics(loader,model):
@@ -304,9 +291,8 @@ def checkClassificationMetrics(loader,model):
     cm = ConfusionMatrix(actual_vector=completeTargetsFlattened, predict_vector=completePredsFlattened)
     return cm
 
-cm=checkClassificationMetrics(testLoader,kimcnn)
+cm=checkClassificationMetrics(testLoader,bertOnly)
 
-f=open("OneSixthResults.txt","a")
+f=open("BERT_Only_Results.txt","a")
 f.write(str(cm))
 f.close()
-

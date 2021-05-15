@@ -102,8 +102,8 @@ class KimCNN(nn.Module):
     self.kimConv3=nn.Conv2d(in_channels=self.inChannels,out_channels=100,kernel_size=(5,self.embDim))
     self.dropoutLayer=nn.Dropout(p=0.5)
 
-    self.fc1=nn.Linear(400,400)
-    self.fc2=nn.Linear(400,1)
+    self.fc1=nn.Linear(800,800)
+    self.fc2=nn.Linear(800,1)
 
 
   def convs(self,input):
@@ -130,7 +130,7 @@ class KimCNN(nn.Module):
     kimOutput1=self.convs(input1)
     kimOutput2=self.convs(input2)
 
-    concatenatedOutput=torch.sqrt((torch.square(kimOutput1-kimOutput2)))
+    concatenatedOutput=torch.cat((kimOutput1, kimOutput2), dim = 1)
 
     classificationOutput=self.fc1(concatenatedOutput)
     classificationOutput=nn.ReLU()(classificationOutput)
@@ -267,12 +267,12 @@ def train_model(model,epochs):
 
   return model,avgTrainLoss,avgValidLoss,avgTrainAcc,avgValidAcc
 
-kimcnn,avgTrainLoss,avgValidLoss,avgTrainAcc,avgValidAcc=train_model(kimcnn,10)
+kimcnn,avgTrainLoss,avgValidLoss,avgTrainAcc,avgValidAcc=train_model(kimcnn,12)
 
 
 loss_train = avgTrainLoss
 loss_val = avgValidLoss
-epochs = range(1,11)
+epochs = range(1,len(avgTrainLoss)+1)
 plt.plot(epochs, loss_train, 'g', label='Training loss')
 plt.plot(epochs, loss_val, 'b', label='Validation loss')
 plt.title('Training and Validation loss(KimCNN_BCELoss)')
@@ -285,7 +285,7 @@ plt.close()
 
 loss_train = avgTrainAcc
 loss_val = avgValidAcc
-epochs = range(1,11)
+epochs = range(1,len(avgTrainLoss)+1)
 plt.plot(epochs, loss_train, 'g', label='Training Acc')
 plt.plot(epochs, loss_val, 'b', label='Validation Acc')
 plt.title('Training and Validation loss(KimCNN_BCELoss)')
@@ -332,3 +332,4 @@ cm=checkClassificationMetrics(testLoader,kimcnn)
 f=open("BCE_Results.txt","a")
 f.write(str(cm))
 f.close()
+
